@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信息技术认证考试系统</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #FFFFFF;
+            color: #0000FF;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: #FFFFFF;
+            border: 3px solid #0000FF;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 255, 0.1);
+            position: relative;
+        }
+        
+        .header {
+            background: #0000FF;
+            color: #FFFFFF;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            display: none;
+            padding: 30px;
+        }
+        
+        .active {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card {
+            padding: 25px;
+            border-bottom: 2px solid #0000FF;
+        }
+        
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #0000FF;
+            border-left: 4px solid #0000FF;
+            padding-left: 10px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 2px solid #0000FF;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        
+        .btn {
+            background: #0000FF;
+            color: #FFFFFF;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+            margin: 10px 5px;
+        }
+        
+        .btn:hover {
+            background: #0000CC;
+            transform: translateY(-2px);
+        }
+        
+        #timer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #0000FF;
+            color: #FFFFFF;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            z-index: 10;
+        }
+        
+        .question {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #FFFFFF;
+            border-radius: 8px;
+            border-left: 4px solid #0000FF;
+        }
+        
+        .options label {
+            display: block;
+            padding: 12px;
+            margin: 10px 0;
+            background: #FFFFFF;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid #0000FF;
+        }
+        
+        .options label:hover {
+            background: rgba(0, 0, 255, 0.05);
+        }
+        
+        .options input {
+            margin-right: 10px;
+            transform: scale(1.1);
+            width: auto;
+        }
+        
+        .question-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .result-container {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid #0000FF;
+            border-radius: 8px;
+        }
+        
+        .result-item {
+            margin: 15px 0;
+            font-size: 18px;
+        }
+        
+        .encryption-box {
+            padding: 15px;
+            margin-top: 20px;
+            border: 2px dashed #0000FF;
+            border-radius: 8px;
+        }
+        
+        .encryption-code {
+            font-family: monospace;
+            background: rgba(0, 0, 255, 0.05);
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .pass {
+            color: #0000FF;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .fail {
+            color: #FF0000;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 2px solid #0000FF;
+            border-radius: 6px;
+            font-size: 14px;
+            height: 120px;
+            resize: vertical;
+        }
+        
+        .verification-result {
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .valid {
+            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid #00FF00;
+            display: block;
+        }
+        
+        .invalid {
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px solid #FF0000;
+            display: block;
+        }
+        
+        .warning-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            display: none;
+        }
+        
+        .warning-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.4);
+            border: 3px solid #FF0000;
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+        
+        .warning-title {
+            color: #FF0000;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        
+        .warning-message {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .cheating-detected {
+            background-color: #FF0000 !important;
+            animation: flashBackground 1s infinite;
+        }
+        
+        @keyframes flashBackground {
+            0% { background-color: #FF0000; }
+            50% { background-color: #880000; }
+            100% { background-color: #FF0000; }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                border-width: 2px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 22px;
+            }
+            
+            .section {
+                padding: 20px;
+            }
+            
+            #timer {
+                position: relative;
+                top: 0;
+                right: 0;
+                width: fit-content;
+                margin: 0 auto 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 作弊警告 -->
+    <div class="warning-container" id="warning-box">
+        <div class="warning-box">
+            <div class="warning-title">考试违规警告</div>
+            <div class="warning-message">
+                检测到作弊行为！<br>
+                系统已记录此次违规操作，考试将被终止。<br>
+                任何试图绕过考试系统的行为都会导致考试成绩无效。
+            </div>
+            <button class="btn" style="background:#FF0000;" id="close-warning">确认</button>
+        </div>
+    </div>
+    
+    <!-- 考试系统 -->
+    <div class="container">
+        <div class="header">
+            <h1>信息技术认证考试系统</h1>
+            <p>专业认证 · 公平公正 · 安全可靠</p>
+        </div>
+        
+        <!-- 身份验证模块 -->
+        <div id="auth-section" class="section active">
+            <div class="card">
+                <h2>考生身份认证</h2>
+                <input type="text" id="user-name" placeholder="请输入您的姓名" required>
+                <select id="cert-level">
+                    <option value="">-- 请选择认证等级 --</option>
+                    <option value="A">A级：初级信息技术员</option>
+                    <option value="B">B级：中级信息技术工程师</option>
+                    <option value="S">S级：高级信息技术专家</option>
+                </select>
+                <button id="start-exam" class="btn">开始考试</button>
+                <div style="margin-top: 20px; padding: 15px; border: 2px dashed #0000FF; border-radius: 8px; background: rgba(0,0,255,0.05);">
+                    <h3>考试规则</h3>
+                    <ul style="margin-left: 20px;">
+                        <li>考试过程中禁止使用右键菜单</li>
+                        <li>禁止切换标签页或打开新窗口</li>
+                        <li>禁止复制、粘贴操作</li>
+                        <li>检测到违规行为将直接判定作弊</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 考试界面 -->
+        <div id="exam-section" class="section">
+            <div id="timer">剩余时间: 30:00</div>
+            <div class="card">
+                <h2>信息技术认证考试</h2>
+                <div id="question-counter">题目 1/20</div>
+                <div id="current-question"></div>
+                
+                <div class="question-nav">
+                    <button id="prev-question" class="btn">上一题</button>
+                    <button id="next-question" class="btn">下一题</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 成绩展示 -->
+        <div id="result-section" class="section">
+            <div class="card">
+                <h2>考试成绩</h2>
+                <div class="result-container">
+                    <div class="result-item">考生姓名: <span id="result-name"></span></div>
+                    <div class="result-item">认证等级: <span id="result-level"></span></div>
+                    <div class="result-item">考试成绩: <span id="result-score"></span>分</div>
+                    <div class="result-item">考试结果: <span id="result-pass"></span></div>
+                    <div class="result-item">考试状态: <span id="cheat-status">正常</span></div>
+                </div>
+                
+                <div class="encryption-box">
+                    <h3>加密成绩单</h3>
+                    <p>密钥：</p>
+                    <div class="encryption-code" id="encryption-key"></div>
+                    <p>密文：</p>
+                    <div class="encryption-code" id="encrypted-data"></div>
+                    <button id="export-btn" class="btn">导出成绩单</button>
+                </div>
+                
+                <button id="decrypt-link" class="btn" style="margin-top: 15px; background: #FFFFFF; color: #0000FF; border: 2px solid #0000FF;">
+                    验证成绩单
+                </button>
+            </div>
+        </div>
+        
+        <!-- 解密页面 -->
+        <div id="decrypt-section" class="section">
+            <div class="card">
+                <h2>成绩单验证</h2>
+                <p>粘贴密钥和加密数据验证成绩单真伪：</p>
+                
+                <div>
+                    <label for="decrypt-key-input">解密密钥：</label>
+                    <input type="text" id="decrypt-key-input" placeholder="输入解密密钥">
+                </div>
+                
+                <div>
+                    <label for="encrypted-text">加密数据：</label>
+                    <textarea id="encrypted-text" placeholder="粘贴加密数据"></textarea>
+                </div>
+                
+                <button id="decrypt-btn" class="btn">验证成绩单</button>
+                
+                <div id="decrypt-result" class="verification-result">
+                    <h3>验证结果</h3>
+                    <div id="decrypted-content"></div>
+                </div>
+                
+                <button id="back-to-exam" class="btn" style="background: #FFFFFF; color: #0000FF; border: 2px solid #0000FF; margin-top: 20px;">
+                    返回考试系统
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === 全局变量 ===
+        const QUESTION_POOL_SIZE = 40;
+        const EXAM_QUESTIONS_COUNT = 20;
+        let examData = [];
+        let userAnswers = [];
+        let timerInterval;
+        let cheatDetectionInterval;
+        let timeLeft = 30 * 60; // 30分钟
+        let currentUser = {
+            name: "",
+            level: "",
+            score: 0,
+            cheated: false,
+            cheatType: ""
+        };
+        let currentQuestionIndex = 0;
+        let encryptionKey = "";
+
+        // === 专业题库（40道题）===
+        const questionBank = [
+            { id: 1, question: "在OSI模型中，数据链路层的主要功能是什么？", options: ["提供端到端的连接", "在物理介质上传输比特流", "提供节点到节点的可靠传输", "路由选择和寻址"], answer: 2 },
+            { id: 2, question: "以下哪个协议用于安全地传输网页内容？", options: ["HTTP", "FTP", "HTTPS", "SMTP"], answer: 2 },
+            { id: 3, question: "AES加密算法支持的最大密钥长度是多少？", options: ["128位", "192位", "256位", "512位"], answer: 2 },
+            { id: 4, question: "在关系型数据库中，主键的主要作用是什么？", options: ["加速数据查询", "确保数据完整性", "唯一标识表中的记录", "建立表之间的关系"], answer: 2 },
+            { id: 5, question: "下列哪项不是常见的网络拓扑结构？", options: ["总线型", "星型", "环型", "矩阵型"], answer: 3 },
+            { id: 6, question: "HTTPS协议使用哪个端口进行安全通信？", options: ["80", "110", "443", "8080"], answer: 2 },
+            { id: 7, question: "在信息安全中，'CIA三元组'不包括：", options: ["机密性", "完整性", "可用性", "可追溯性"], answer: 3 },
+            { id: 8, question: "下列哪种编程语言主要用于开发iOS应用？", options: ["Java", "Kotlin", "Swift", "C#"], answer: 2 },
+            { id: 9, question: "云计算服务模型中，IaaS指的是：", options: ["基础设施即服务", "平台即服务", "软件即服务", "功能即服务"], answer: 0 },
+            { id: 10, question: "在HTML中，用于创建超链接的标签是：", options: ["<link>", "<a>", "<href>", "<url>"], answer: 1 },
+            { id: 11, question: "下列哪个不是JavaScript的数据类型？", options: ["String", "Integer", "Boolean", "Object"], answer: 1 },
+            { id: 12, question: "在CSS中，用于设置元素外边距的属性是：", options: ["padding", "border", "margin", "spacing"], answer: 2 },
+            { id: 13, question: "关系型数据库查询语言是：", options: ["HTML", "SQL", "XML", "JSON"], answer: 1 },
+            { id: 14, question: "下列哪个协议用于将域名解析为IP地址？", options: ["DHCP", "FTP", "DNS", "HTTP"], answer: 2 },
+            { id: 15, question: "在计算机网络中，MAC地址工作在OSI模型的哪一层？", options: ["物理层", "数据链路层", "网络层", "传输层"], answer: 1 },
+            { id: 16, question: "下列哪项不是常见的Web服务器软件？", options: ["Apache", "Nginx", "MySQL", "IIS"], answer: 2 },
+            { id: 17, question: "在Python中，用于创建空列表的语法是：", options: ["{}", "[]", "()", "None"], answer: 1 },
+            { id: 18, question: "在版本控制系统中，Git属于哪种类别？", options: ["集中式", "分布式", "混合式", "云存储式"], answer: 1 },
+            { id: 19, question: "下列哪项不是常见的前端框架？", options: ["React", "Angular", "Vue", "Django"], answer: 3 },
+            { id: 20, question: "在信息安全中，XSS攻击指的是：", options: ["跨站脚本攻击", "跨站请求伪造", "SQL注入攻击", "分布式拒绝服务攻击"], answer: 0 },
+            { id: 21, question: "在JavaScript中，用于向控制台输出信息的函数是：", options: ["print()", "console.log()", "output()", "display()"], answer: 1 },
+            { id: 22, question: "下列哪项是NoSQL数据库？", options: ["MySQL", "PostgreSQL", "MongoDB", "Oracle"], answer: 2 },
+            { id: 23, question: "在HTML5中，用于绘制图形的元素是：", options: ["<draw>", "<canvas>", "<graphic>", "<svg>"], answer: 1 },
+            { id: 24, question: "在CSS中，用于设置文本居中的属性是：", options: ["align: center;", "text-align: center;", "center: true;", "position: center;"], answer: 1 },
+            { id: 25, question: "下列哪个HTTP状态码表示'未找到'？", options: ["200", "301", "404", "500"], answer: 2 },
+            { id: 26, question: "在JavaScript中，用于处理异步操作的语法是：", options: ["async/await", "for/while", "if/else", "try/catch"], answer: 0 },
+            { id: 27, question: "下列哪项不是常见的开发方法论？", options: ["瀑布模型", "敏捷开发", "螺旋模型", "区块链"], answer: 3 },
+            { id: 28, question: "在Linux系统中，用于显示当前工作目录的命令是：", options: ["ls", "cd", "pwd", "dir"], answer: 2 },
+            { id: 29, question: "在网络安全中，VPN的主要作用是：", options: ["加速网络连接", "创建加密隧道", "过滤恶意网站", "阻止病毒传播"], answer: 1 },
+            { id: 30, question: "在JavaScript中，用于向数组末尾添加元素的函数是：", options: ["push()", "pop()", "shift()", "unshift()"], answer: 0 },
+            { id: 31, question: "在HTML中，用于包含外部JavaScript文件的属性是：", options: ["link", "src", "href", "include"], answer: 1 },
+            { id: 32, question: "下列哪项不是常见的容器化技术？", options: ["Docker", "Kubernetes", "VirtualBox", "Podman"], answer: 2 },
+            { id: 33, question: "在CSS中，用于设置元素为弹性布局的属性是：", options: ["display: block;", "display: flex;", "display: grid;", "display: table;"], answer: 1 },
+            { id: 34, question: "在关系型数据库中，用于连接两个表的操作是：", options: ["UNION", "JOIN", "MERGE", "CONCAT"], answer: 1 },
+            { id: 35, question: "下列哪项协议用于文件传输？", options: ["HTTP", "FTP", "SMTP", "SNMP"], answer: 1 },
+            { id: 36, question: "在JavaScript中，用于将字符串转换为整数的函数是：", options: ["parseInt()", "parseString()", "toInteger()", "convertInt()"], answer: 0 },
+            { id: 37, question: "在Python中，用于定义函数的语法是：", options: ["function", "def", "func", "define"], answer: 1 },
+            { id: 38, question: "下列哪项不是HTTP请求方法？", options: ["GET", "POST", "SEND", "DELETE"], answer: 2 },
+            { id: 39, question: "在CSS中，用于设置元素透明度的属性是：", options: ["visibility", "opacity", "transparent", "alpha"], answer: 1 },
+            { id: 40, question: "在计算机科学中，OOP指的是：", options: ["面向对象编程", "面向过程编程", "面向功能编程", "面向数据编程"], answer: 0 }
+        ];
+
+        // === 防止作弊功能 ===
+        // 禁止右键菜单
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        // 检测作弊行为
+        const enableCheatDetection = () => {
+            // 右键点击检测
+            document.addEventListener('contextmenu', handleCheatingEvent);
+            
+            // 开发者工具检测
+            detectDevTools();
+            
+            // 窗口失焦检测
+            window.addEventListener('blur', handleWindowBlur);
+            
+            // 键盘F12检测
+            document.addEventListener('keydown', detectFunctionKeys);
+            
+            // 启动定期检测
+            cheatDetectionInterval = setInterval(detectDevTools, 1000);
+        };
+
+        const disableCheatDetection = () => {
+            // 清除所有事件监听
+            document.removeEventListener('contextmenu', handleCheatingEvent);
+            window.removeEventListener('blur', handleWindowBlur);
+            document.removeEventListener('keydown', detectFunctionKeys);
+            
+            // 清除定期检测
+            if (cheatDetectionInterval) {
+                clearInterval(cheatDetectionInterval);
+            }
+        };
+
+        const detectDevTools = () => {
+            const widthThreshold = window.outerWidth - window.innerWidth > 100;
+            const heightThreshold = window.outerHeight - window.innerHeight > 100;
+            
+            if (widthThreshold || heightThreshold) {
+                handleCheating("检测到开发者工具");
+            }
+        };
+
+        const detectFunctionKeys = (e) => {
+            // 检测F12
+            if (e.key === 'F12' || e.code === 'F12' || e.keyCode === 123) {
+                e.preventDefault();
+                handleCheating("检测到F12按键");
+            }
+            // 检测Ctrl+Shift+I, Ctrl+Shift+C
+            else if ((e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                     (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+                     (e.ctrlKey && e.key === 'U')) {
+                e.preventDefault();
+                handleCheating("检测到开发者工具快捷键");
+            }
+        };
+
+        const handleWindowBlur = () => {
+            handleCheating("窗口失去焦点（可能尝试切换标签）");
+        };
+
+        const handleCheatingEvent = (e) => {
+            handleCheating("右键菜单操作");
+            e.preventDefault();
+        };
+
+        const handleCheating = (type) => {
+            if (!document.getElementById('exam-section').classList.contains('active')) return;
+            
+            // 标记作弊状态
+            currentUser.cheated = true;
+            currentUser.cheatType = type;
+            
+            // 显示警告信息
+            document.getElementById('warning-box').style.display = 'flex';
+            document.body.classList.add('cheating-detected');
+            
+            // 10秒后自动结束考试
+            setTimeout(endExamDueToCheating, 10000);
+        };
+
+        const endExamDueToCheating = () => {
+            // 提交考试
+            submitExam();
+            
+            // 隐藏警告框
+            document.getElementById('warning-box').style.display = 'none';
+            document.body.classList.remove('cheating-detected');
+        };
+
+        // === 开始考试 ===
+        document.getElementById('start-exam').addEventListener('click', () => {
+            const userName = document.getElementById('user-name').value;
+            const certLevel = document.getElementById('cert-level').value;
+            
+            if (!userName || !certLevel) {
+                alert("请填写姓名并选择认证等级");
+                return;
+            }
+            
+            currentUser.name = userName;
+            currentUser.level = certLevel;
+            currentUser.cheated = false;
+            currentUser.cheatType = "";
+            
+            generateExamQuestions();
+            
+            // 切换界面
+            document.getElementById('auth-section').classList.remove('active');
+            document.getElementById('exam-section').classList.add('active');
+            
+            // 启动计时器
+            startTimer();
+            
+            // 启动防作弊检测
+            enableCheatDetection();
+            
+            // 显示第一题
+            showQuestion(0);
+        });
+
+        // === 生成考试题目 ===
+        const generateExamQuestions = () => {
+            userAnswers = [];
+            
+            // 随机选择20题（Fisher-Yates洗牌算法）
+            const shuffled = [...questionBank];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            examData = shuffled.slice(0, EXAM_QUESTIONS_COUNT);
+            
+            // 初始化用户答案数组
+            for (let i = 0; i < examData.length; i++) {
+                userAnswers.push(-1); // -1表示未作答
+            }
+        };
+
+        // === 显示题目 ===
+        const showQuestion = (index) => {
+            if (index < 0 || index >= examData.length) return;
+            
+            currentQuestionIndex = index;
+            
+            // 更新题目计数器
+            document.getElementById('question-counter').textContent = 
+                `题目 ${index + 1}/${examData.length}`;
+            
+            // 获取当前题目
+            const q = examData[index];
+            
+            // 创建题目HTML
+            const questionHTML = `
+                <div class="question">
+                    <h3>${q.id}. ${q.question}</h3>
+                    <div class="options">
+                        ${q.options.map((opt, optIndex) => `
+                            <label>
+                                <input type="radio" name="currentQuestion" value="${optIndex}" 
+                                    ${userAnswers[index] === optIndex ? 'checked' : ''}>
+                                ${opt}
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('current-question').innerHTML = questionHTML;
+            
+            // 更新按钮状态
+            document.getElementById('prev-question').disabled = (index === 0);
+            if (index === examData.length - 1) {
+                document.getElementById('next-question').textContent = '提交答卷';
+            } else {
+                document.getElementById('next-question').textContent = '下一题';
+            }
+        };
+
+        // === 保存当前答案 ===
+        const saveAnswer = () => {
+            const selected = document.querySelector('input[name="currentQuestion"]:checked');
+            if (selected) {
+                userAnswers[currentQuestionIndex] = parseInt(selected.value);
+            }
+        };
+
+        // === 上一题按钮 ===
+        document.getElementById('prev-question').addEventListener('click', () => {
+            saveAnswer();
+            showQuestion(currentQuestionIndex - 1);
+        });
+
+        // === 下一题按钮 ===
+        document.getElementById('next-question').addEventListener('click', () => {
+            saveAnswer();
+            
+            if (currentQuestionIndex === examData.length - 1) {
+                submitExam();
+            } else {
+                showQuestion(currentQuestionIndex + 1);
+            }
+        });
+
+        // === 计时器 ===
+        const startTimer = () => {
+            const timerDisplay = document.getElementById('timer');
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    submitExam();
+                }
+            }, 1000);
+        };
+
+        const updateTimerDisplay = () => {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('timer').textContent = 
+                `剩余时间: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+            // 时间不足5分钟时改变颜色
+            if (timeLeft < 300) {
+                document.getElementById('timer').style.background = "#FF0000";
+            }
+        };
+
+        // === 提交考试 ===
+        function submitExam() {
+            clearInterval(timerInterval);
+            disableCheatDetection();
+            
+            // 计算分数
+            const score = calculateScore();
+            currentUser.score = score;
+            
+            // 显示结果
+            showResults(score);
+            
+            // 切换界面
+            document.getElementById('exam-section').classList.remove('active');
+            document.getElementById('result-section').classList.add('active');
+        }
+
+        // === 计算分数 ===
+        const calculateScore = () => {
+            let correctCount = 0;
+            examData.forEach((q, qIndex) => {
+                if (userAnswers[qIndex] === q.answer) {
+                    correctCount++;
+                }
+            });
+            return Math.floor((correctCount / examData.length) * 100);
+        };
+
+        // === 显示结果 ===
+        const showResults = (score) => {
+            // 显示用户信息
+            document.getElementById('result-name').textContent = currentUser.name;
+            document.getElementById('result-level').textContent = getCertName(currentUser.level);
+            document.getElementById('result-score').textContent = score;
+            
+            // 考试结果
+            const pass = score >= 70 && !currentUser.cheated;
+            document.getElementById('result-pass').innerHTML = pass ? 
+                '<span class="pass">通过认证</span>' : 
+                '<span class="fail">未通过认证</span>';
+            
+            // 作弊状态
+            const cheatStatus = document.getElementById('cheat-status');
+            if (currentUser.cheated) {
+                cheatStatus.innerHTML = '<span style="color:red;">作弊 (' + currentUser.cheatType + ')</span>';
+            } else {
+                cheatStatus.innerHTML = '<span style="color:green;">正常</span>';
+            }
+            
+            // 生成加密成绩单
+            generateEncryptedResult();
+        };
+        
+        // === 获取认证等级名称 ===
+        const getCertName = (level) => {
+            switch(level) {
+                case 'A': return '初级信息技术员';
+                case 'B': return '中级信息技术工程师';
+                case 'S': return '高级信息技术专家';
+                default: return '未知等级';
+            }
+        };
+        
+        // === 生成加密成绩单 ===
+        const generateEncryptedResult = () => {
+            // 准备加密数据
+            const resultData = {
+                name: currentUser.name,
+                level: currentUser.level,
+                score: currentUser.score,
+                cheated: currentUser.cheated,
+                cheatType: currentUser.cheatType,
+                timestamp: new Date().toISOString(),
+                examId: generateExamId()
+            };
+            
+            // 生成随机密钥
+            encryptionKey = generateRandomKey();
+            
+            // 加密数据
+            const encrypted = CryptoJS.AES.encrypt(
+                JSON.stringify(resultData),
+                encryptionKey
+            ).toString();
+            
+            // 显示加密结果
+            document.getElementById('encryption-key').textContent = encryptionKey;
+            document.getElementById('encrypted-data').textContent = encrypted;
+        };
+        
+        // === 生成随机密钥 ===
+        const generateRandomKey = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < 16; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        };
+        
+        // === 生成唯一考试ID ===
+        const generateExamId = () => {
+            return 'EXAM-' + Date.now().toString(36) + '-' + 
+                Math.floor(Math.random() * 10000).toString(16);
+        };
+        
+        // === 导出成绩单 ===
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const data = {
+                key: encryptionKey,
+                encryptedData: document.getElementById('encrypted-data').textContent
+            };
+            
+            const dataStr = "data:text/json;charset=utf-8," + 
+                encodeURIComponent(JSON.stringify(data));
+            
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `成绩单_${currentUser.name}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            document.body.removeChild(downloadAnchor);
+            
+            alert('成绩单已导出！');
+        });
+        
+        // === 验证成绩单按钮 ===
+        document.getElementById('decrypt-link').addEventListener('click', () => {
+            document.getElementById('result-section').classList.remove('active');
+            document.getElementById('decrypt-section').classList.add('active');
+        });
+        
+        // === 解密成绩单 ===
+        document.getElementById('decrypt-btn').addEventListener('click', () => {
+            const key = document.getElementById('decrypt-key-input').value;
+            const encryptedText = document.getElementById('encrypted-text').value;
+            
+            if (!key || !encryptedText) {
+                alert('请输入密钥和加密数据');
+                return;
+            }
+            
+            try {
+                const decryptedBytes = CryptoJS.AES.decrypt(encryptedText, key);
+                const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+                
+                if (!decryptedText) {
+                    throw new Error('解密失败');
+                }
+                
+                const resultData = JSON.parse(decryptedText);
+                
+                // 验证数据结构
+                const isValid = resultData && 
+                    resultData.name && 
+                    resultData.level && 
+                    resultData.score !== undefined && 
+                    resultData.timestamp && 
+                    resultData.examId;
+                
+                if (!isValid) {
+                    throw new Error('无效的成绩单格式');
+                }
+                
+                let cheatInfo = '';
+                if (resultData.cheated) {
+                    cheatInfo = `<p><strong>作弊记录:</strong> <span style="color:red;">${resultData.cheatType}</span></p>`;
+                }
+                
+                document.getElementById('decrypted-content').innerHTML = `
+                    <p><strong>考生姓名:</strong> ${resultData.name}</p>
+                    <p><strong>认证等级:</strong> ${getCertName(resultData.level)}</p>
+                    <p><strong>考试成绩:</strong> ${resultData.score}分</p>
+                    ${cheatInfo}
+                    <p><strong>考试时间:</strong> ${new Date(resultData.timestamp).toLocaleString()}</p>
+                    <p><strong>考试ID:</strong> ${resultData.examId}</p>
+                `;
+                
+                // 显示验证成功
+                document.getElementById('decrypt-result').className = 'verification-result valid';
+                document.getElementById('decrypt-result').style.display = 'block';
+                
+            } catch (e) {
+                document.getElementById('decrypted-content').innerHTML = `
+                    <p>成绩单验证失败！</p>
+                    <p>错误信息: ${e.message}</p>
+                    <p>可能原因：</p>
+                    <ul>
+                        <li>密钥不正确</li>
+                        <li>加密数据被篡改</li>
+                        <li>文件格式不正确</li>
+                    </ul>
+                `;
+                document.getElementById('decrypt-result').className = 'verification-result invalid';
+                document.getElementById('decrypt-result').style.display = 'block';
+            }
+        });
+        
+        // === 返回考试系统 ===
+        document.getElementById('back-to-exam').addEventListener('click', () => {
+            document.getElementById('decrypt-section').classList.remove('active');
+            document.getElementById('auth-section').classList.add('active');
+            
+            // 重置表单
+            document.getElementById('user-name').value = '';
+            document.getElementById('cert-level').value = '';
+            document.getElementById('decrypt-key-input').value = '';
+            document.getElementById('encrypted-text').value = '';
+            document.getElementById('decrypt-result').style.display = 'none';
+            
+            // 重置考试数据
+            timeLeft = 30 * 60;
+            currentQuestionIndex = 0;
+            userAnswers = [];
+            examData = [];
+        });
+        
+        // === 关闭警告框 ===
+        document.getElementById('close-warning').addEventListener('click', () => {
+            document.getElementById('warning-box').style.display = 'none';
+            if (document.body.classList.contains('cheating-detected')) {
+                document.body.classList.remove('cheating-detected');
+            }
+            endExamDueToCheating();
+        });
+        
+        // === 初始化 ===
+        window.addEventListener('DOMContentLoaded', () => {
+            // 确保只显示认证界面
+            document.getElementById('auth-section').classList.add('active');
+            document.getElementById('exam-section').classList.remove('active');
+            document.getElementById('result-section').classList.remove('active');
+            document.getElementById('decrypt-section').classList.remove('active');
+        });
+    </script>
+</body>
+</html>
